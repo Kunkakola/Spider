@@ -1,0 +1,101 @@
+from urllib import request, parse
+from bs4 import BeautifulSoup
+import time
+import os
+import re
+
+#要爬取的网站
+root_url = 'http://www.meizitu.com/a/more_1.html'
+
+#模拟浏览器请求头
+header = {
+        'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.135 Safari/537.36 Edge/12.10240",
+        'Connection': 'Keep-Alive',
+        'Referer': "http://www.mzitu.com/99566"
+    }
+#破解盗链请求头
+Picreferer = {
+    'User-Agent':'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)',
+    'Referer':'http://i.meizitu.net'
+}
+#保存地址
+Path = 'F://Python//Spider//meizitu//image//'
+
+
+def getHtml(url):
+    #添加浏览器头防止拒绝访问
+    req = request.Request(url, headers=header)
+    page = request.urlopen(req)
+    html = page.read()
+    return html
+
+
+def html_parser():
+    root_html = getHtml(root_url)
+    soup = BeautifulSoup(root_html, 'html.parser', from_encoding='utf-8')
+    #获取最大页数
+    max_page = soup.find(
+        'div', id='wp_page_numbers').find_all('a')[-3].get_text()
+    print(max_page)
+
+    for i in range(1, 2):
+        #休息0.08s，防止服务器拒绝频繁请求
+        time.sleep(0.08)
+        new_url = ('more_%d.html') % i
+        #实现翻页
+        new_page = parse.urljoin(root_url, new_url)
+
+        print(new_page)
+
+        html = getHtml(new_page)
+        new_soup = BeautifulSoup(html, 'html.parser', from_encoding='utf-8')
+        #获取图片地址
+        all_find = new_soup.find('ul', class_='wp-list clearfix').find_all('li',class_='wp-item')
+        
+        print (len(all_find))
+        for li in all_find:
+            ret1=li.find('h3',class_='tit').find('a',target='_blank')
+            #创建目录
+            pakage=ret1.get_text()
+            print(ret1.get_text())
+
+            now_Path=os.path.join(Path,pakage)
+            os.makedirs(now_Path)
+            print(now_Path)
+            
+            print(ret1['href'])
+            ret2=getHtml(ret1['href'])
+            now_soup=BeautifulSoup(ret2,'html.parser',from_encoding='utf-8')
+            pic=now_soup.find('div',id='picture').find_all('img')
+            print(len(pic))
+            cnt=1
+            for now_pic in pic:
+                #alt的倒数第二个是个数
+                
+                get=os.path.join(now_Path,('%d.jpg')%cnt)
+                cnt+=1
+                print(cnt)
+                try:
+
+                    result=getHtml(now_pic['src'])
+                    f=open(get, 'wb')
+                    f.write(result)
+                    f.close()
+                except:
+                    print('出错')
+                
+            
+
+                
+                '''
+                request.urlretrieve(li['src'],
+                                    ('F://Python//Spider//meizitu//image//%s.jpg') % li['alt'])
+                print(li['tit'])
+                
+            
+                '''
+            
+
+print('begin!')
+html_parser()
+print('end!')
